@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("optall_parallel")]
-[assembly: AssemblyCopyright("Copyright ©  2025")]
+[assembly: AssemblyCopyright("CC0 1.0 Universal")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
