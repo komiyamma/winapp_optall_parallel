@@ -8,39 +8,74 @@ class Program
 {
     private static readonly object ConsoleLock = new object();
 
+    // 定数定義（仕様値をそのまま明示）
+    private const int MaxParallelism = 7; // 最大同時実行数
+    private const string SearchPattern = "*.png"; // 対象ファイルパターン
+    private const string OptimizerExe = "optipng"; // 利用コマンド
+    private const string OptimizerArgsFormat = "-strip all -o 7 \"{0}\""; // 既存引数パターン
+
     static void Main()
     {
-        // カレントディレクトリの *.png を取得
-        var files = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.png");
+        var files = GetTargetFiles();
+        var options = CreateParallelOptions();
 
-        var options = new ParallelOptions
+        Parallel.ForEach(files, options, OptimizeSingleFile);
+
+        WriteLineUnlocked("全ての PNG 最適化が完了しました。");
+    }
+
+    // 対象 PNG ファイル取得
+    private static string[] GetTargetFiles()
+    {
+        return Directory.GetFiles(Directory.GetCurrentDirectory(), SearchPattern);
+    }
+
+    // ParallelOptions を生成
+    private static ParallelOptions CreateParallelOptions()
+    {
+        return new ParallelOptions { MaxDegreeOfParallelism = MaxParallelism };
+    }
+
+    // 各ファイルの最適化処理
+    private static void OptimizeSingleFile(string file)
+    {
+        var fileName = Path.GetFileName(file);
+        WriteLineLocked($"START: {fileName}");
+
+        var psi = CreateProcessStartInfo(file);
+
+        using (var proc = Process.Start(psi))
         {
-            MaxDegreeOfParallelism = 7 // 最大同時実行数
+            // 元コードと同じく例外はそのまま外へ（仕様変更しない）
+            proc.WaitForExit();
+            WriteLineLocked($"END  : {fileName} (ExitCode={proc.ExitCode})");
+        }
+    }
+
+    // ProcessStartInfo 生成
+    private static ProcessStartInfo CreateProcessStartInfo(string file)
+    {
+        return new ProcessStartInfo
+        {
+            FileName = OptimizerExe,
+            Arguments = string.Format(OptimizerArgsFormat, file),
+            CreateNoWindow = true,
+            UseShellExecute = false
         };
+    }
 
-        Parallel.ForEach(files, options, file =>
+    // ロック付き出力（元の lock + Console.WriteLine を集約）
+    private static void WriteLineLocked(string message)
+    {
+        lock (ConsoleLock)
         {
-            var fileName = Path.GetFileName(file);
+            Console.WriteLine(message);
+        }
+    }
 
-            lock (ConsoleLock)
-                Console.WriteLine($"START: {fileName}");
-
-            var psi = new ProcessStartInfo
-            {
-                FileName = "optipng",
-                Arguments = $"-strip all -o 7 \"{file}\"",
-                CreateNoWindow = true,
-                UseShellExecute = false
-            };
-
-            using (var proc = Process.Start(psi))
-            {
-                proc.WaitForExit();
-                lock (ConsoleLock)
-                    Console.WriteLine($"END  : {fileName} (ExitCode={proc.ExitCode})");
-            }
-        });
-
-        Console.WriteLine("全ての PNG 最適化が完了しました。");
+    // 完了メッセージは逐次処理後なのでロック不要（元仕様と同じ挙動）
+    private static void WriteLineUnlocked(string message)
+    {
+        Console.WriteLine(message);
     }
 }
