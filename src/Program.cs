@@ -12,7 +12,7 @@ class Program
     private const int MaxParallelism = 7; // 最大同時実行数
     private const string SearchPattern = "*.png"; // 対象ファイルパターン
     private const string OptimizerExe = "optipng"; // 利用コマンド
-    private const string OptimizerArgsFormat = "-strip all -o 7 \"{0}\""; // 既存引数パターン
+    private const string OptimizerArgsFormat = "--strip all -o 6 \"{0}\""; // 既存引数パターン
 
     static void Main()
     {
